@@ -3,7 +3,7 @@
 <head>
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'>
-    <title>Para ti, mi amor - Viento de Caifanes ❤️</title>
+    <title>Para ti, mi amor ❤️</title>
     <style>
         * { box-sizing: border-box; }
         html, body {
@@ -54,7 +54,7 @@
     </div>
     
     <!-- Iframe oculto para reproducir la canción de YouTube -->
-    <iframe width='0' height='0' src='https://www.youtube.com/embed/NMlKHIqtuO0?autoplay=1&loop=1&playlist=NMlKHIqtuO0' frameborder='0' allow='autoplay; encrypted-media'></iframe>
+    <iframe width='0' height='0' src='https://www.youtube.com/embed/9KIshSBiojI?autoplay=1&loop=1&playlist=9KIshSBiojI' frameborder='0' allow='autoplay; encrypted-media'></iframe>
 
     <script>
         // Obtenemos el canvas y el contexto
@@ -183,377 +183,345 @@
                     this.originalHeartY = baseY;
                     this.position.x = baseX;
                     this.position.y = baseY;
-                    
-                    // Aplicar efecto 3D (más pronunciado de lado)
-                    if (typeof this.heart3DRotation !== 'undefined') {
-                        const centerX = canvas.width / 2;
-                        const centerY = canvas.height / 3;
-                        const rot = this.heart3DRotation;
-                        const cosRot = Math.cos(rot);
-                        const sinRot = Math.sin(rot);
-                        const relX = this.originalHeartX - centerX;
-                        const relY = this.originalHeartY - centerY;
-                        const maxRadius = Math.min(canvas.width, canvas.height) * 0.25;
-                        
-                        const depthRaw = relX * sinRot;
-                        this.depthNorm = Math.max(-1, Math.min(1, depthRaw / (maxRadius * 0.5)));
-                        const sideView = 1 - Math.abs(cosRot);
-                        
-                        const perspectiveX = relX * cosRot * (1 - this.depthNorm * sideView * 0.4);
-                        this.position.x = centerX + perspectiveX;
-                        
-                        const tiltY = this.depthNorm * sinRot * maxRadius * 0.15 * sideView;
-                        this.position.y = baseY + tiltY;
-                        
-                        const depthScale = sideView > 0.5 ? 0.25 + 0.9 * (this.depthNorm + 1) / 2 : 0.5 + 0.6 * (this.depthNorm + 1) / 2;
-                        const rotScale = 0.6 + 0.6 * Math.abs(cosRot);
-                        this.currentScale = depthScale * rotScale;
-                        
-                        this.depthOpacity = sideView > 0.5 ? 0.15 + 0.85 * (this.depthNorm + 1) / 2 : 0.35 + 0.65 * (this.depthNorm + 1) / 2;
-                    } else {
-                        this.currentScale = 1.0;
-                        this.depthOpacity = 1.0;
-                    }
                 } else {
-                    // Si no está en formación del corazón, forzar la formación inmediata
-                    this.createHeartShape();
-                    this.inHeartFormation = true;
+                    // Actualizar velocidad con aceleración
+                    this.velocity.x += this.acceleration.x;
+                    this.velocity.y += this.acceleration.y;
+                    
+                    // Actualizar posición con velocidad
+                    this.position.x += this.velocity.x;
+                    this.position.y += this.velocity.y;
                 }
                 
-                // Incrementamos la edad
+                // Incrementar edad
                 this.age++;
             }
-            
-            // Método para aplicar rotación 3D al corazón (llamado externamente)
-            applyHeartRotation(rotationAngle) {
-                if (this.inHeartFormation) {
-                    // Calcular la posición relativa al centro del corazón
-                    const centerX = canvas.width / 2;
-                    const centerY = canvas.height / 3;
-                    
-                    // Calcular vector desde el centro del corazón a la posición original de la partícula
-                    const relX = this.originalHeartX - centerX;
-                    const relY = this.originalHeartY - centerY;
-                    
-                    // Para simular una rotación 3D de izquierda a derecha (rotación en el eje Y)
-                    // Proyectamos la posición en 3D y luego la mapeamos de vuelta a 2D
-                    const cosAngle = Math.cos(rotationAngle);
-                    const sinAngle = Math.sin(rotationAngle);
-                    
-                    // Rotación en el eje Y (izquierda a derecha)
-                    // x' = x*cos(θ) + z*sin(θ), donde z se aproxima con el factor de profundidad
-                    // Para simplificar, usaremos una simulación de profundidad basada en la posición X
-                    const depthFactor = relX / 200; // Factor de profundidad basado en la posición X
-                    const rotatedX = relX * cosAngle + depthFactor * sinAngle * 100; // Ajuste de profundidad
-                    const rotatedY = relY; // Mantener Y constante para rotación en eje Y
-                    
-                    // Calcular factor de escala para efecto de profundidad (más lejos = más pequeño)
-                    const scale = 1 - Math.abs(depthFactor) * 0.3; // Reducir tamaño cuando está más lejos
-                    
-                    // Aplicar el factor de escala y reposicionar
-                    this.heartX = centerX + rotatedX * scale;
-                    this.heartY = centerY + rotatedY;
+
+            // Método render para dibujar la partícula
+            render() {
+                // Controlar la opacidad según la edad de la partícula
+                let alpha = 1;
+                if (this.age < 50) {
+                    // Fade in: la partícula aparece gradualmente
+                    alpha = this.age / 50;
+                } else if (this.age > this.life - 50) {
+                    // Fade out: la partícula desaparece gradualmente
+                    alpha = (this.life - this.age) / 50;
                 }
-            }
-
-            // Método para reiniciar la partícula
-            reset() {
-                this.position.y = Math.random() * -50; // Nueva posición aleatoria arriba
-                this.position.x = Math.random() * canvas.width; // Nueva posición horizontal aleatoria
-                this.velocity.x = (Math.random() - 0.5) * 2; // Nuevo movimiento lateral
-                this.velocity.y = Math.random() * 3 + 1; // Nueva velocidad de caída
-                this.age = 0; // Reiniciar edad
-                this.inHeartFormation = false; // Resetear estado de formación del corazón
-                delete this.formationStartTime; // Eliminar el tiempo de inicio de formación para reiniciar la transición de color
-            }
-
-            getColor() {
-                const d = this.depthNorm ?? 0;
-                const t = (d + 1) / 2;
-                const r = Math.floor(80 + 120 * t);
-                const g = Math.floor(150 + 80 * t);
-                const b = Math.floor(230 + 25 * t);
-                return `rgba(${r}, ${g}, ${b}, 0.85)`;
-            }
-
-            // Método draw para dibujar la partícula
-            draw() {
-                // Calcular radio escalado para efecto 3D
-                const baseRadius = this.inHeartFormation ? 1.5 : 1; // Partículas más pequeñas
-                const scaledRadius = baseRadius * (this.currentScale || 1.0);
                 
-                // Si la partícula está formando parte del corazón, usar efecto neon
-                if (this.inHeartFormation) {
-                    const currentColor = this.getColor();
-                    const colorMatch = currentColor.match(/rgba?\((\d+), (\d+), (\d+)/);
-                    const r = colorMatch ? parseInt(colorMatch[1]) : 100;
-                    const g = colorMatch ? parseInt(colorMatch[2]) : 180;
-                    const b = colorMatch ? parseInt(colorMatch[3]) : 255;
-                    const alpha = (this.depthOpacity !== undefined ? this.depthOpacity : 1) * 0.92;
-                    
-                    const cx = this.position.x;
-                    const cy = this.position.y;
-                    const rot = this.heart3DRotation || 0;
-                    const lightX = Math.cos(rot) * 0.8 - Math.sin(rot) * 0.4;
-                    const lightY = -0.6;
-                    const len = Math.sqrt(lightX*lightX + lightY*lightY) || 1;
-                    const hlX = cx - (lightX/len) * scaledRadius * 0.6;
-                    const hlY = cy - (lightY/len) * scaledRadius * 0.6;
-                    
-                    const pulse = 1 + 0.06 * Math.sin(Date.now() * 0.0025);
-                    const rad = scaledRadius * pulse;
-                    
-                    const gradient = ctx.createRadialGradient(hlX, hlY, 0, cx, cy, rad * 3.5);
-                    gradient.addColorStop(0, `rgba(255, 255, 255, ${alpha * 0.55})`);
-                    gradient.addColorStop(0.15, `rgba(${Math.min(255,r+60)}, ${Math.min(255,g+60)}, 255, ${alpha})`);
-                    gradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, ${alpha * 0.85})`);
-                    gradient.addColorStop(0.85, `rgba(${r}, ${g}, ${b}, ${alpha * 0.3})`);
-                    gradient.addColorStop(1, 'rgba(0, 100, 180, 0)');
-                    
-                    ctx.beginPath();
-                    ctx.arc(cx, cy, rad * 3.5, 0, Math.PI * 2);
-                    ctx.fillStyle = gradient;
-                    ctx.fill();
-                    
-                    ctx.beginPath();
-                    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
-                    ctx.strokeStyle = `rgba(${Math.min(255,r+70)}, ${Math.min(255,g+70)}, 255, ${alpha * 0.85})`;
-                    ctx.lineWidth = 0.6;
-                    ctx.stroke();
-                    
-                    ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${alpha * 0.7})`;
-                    ctx.shadowBlur = 10;
-                    ctx.beginPath();
-                    ctx.arc(cx, cy, rad * 0.8, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-                    ctx.fill();
-                    ctx.shadowBlur = 0;
-                } else {
-                    // Efecto normal para partículas cayendo
-                    ctx.beginPath();
-                    ctx.arc(this.position.x, this.position.y, scaledRadius, 0, Math.PI * 2); // Círculo con radio escalado
-                    ctx.fillStyle = 'rgba(0, 200, 255, 0.7)'; // Azul semitransparente
-                    ctx.fill();
-                }
+                // Efecto de holograma con partículas rojas brillantes
+                const glowIntensity = this.inHeartFormation ? 0.8 : 0.5;
+                
+                // Halo exterior brillante
+                const gradient = ctx.createRadialGradient(
+                    this.position.x, this.position.y, 0,
+                    this.position.x, this.position.y, 8
+                );
+                gradient.addColorStop(0, `rgba(255, 50, 80, ${alpha * glowIntensity})`);
+                gradient.addColorStop(0.5, `rgba(255, 30, 60, ${alpha * glowIntensity * 0.4})`);
+                gradient.addColorStop(1, `rgba(255, 0, 40, 0)`);
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.position.x, this.position.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Núcleo brillante de la partícula
+                ctx.fillStyle = `rgba(255, 100, 120, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(this.position.x, this.position.y, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Punto central super brillante
+                ctx.fillStyle = `rgba(255, 200, 220, ${alpha * 0.9})`;
+                ctx.beginPath();
+                ctx.arc(this.position.x, this.position.y, 1, 0, Math.PI * 2);
+                ctx.fill();
             }
         }
 
-        // Array con más partículas para un corazón más denso y vistoso
+        // Array para almacenar todas las partículas
         const particles = [];
-        for (let i = 0; i < 600; i++) {  // Duplicamos la cantidad de partículas
-            particles.push(new Particle());
-        }
-        
 
+        // Número de partículas que forman el corazón
+        const numHeartParticles = 1000;
 
+        // Texto de la carta de amor
+        const letterText = `Mi amor,
 
+Desde el momento en que entraste en mi vida, todo cambió. El mundo se volvió más brillante, los días más luminosos y cada instante más significativo. No existen palabras suficientes para expresar lo que siento por ti, pero lo intentaré...
 
+Eres la razón por la que sonrío sin motivo aparente, la inspiración detrás de mis sueños más hermosos, y la paz que encuentro en medio del caos. Tu risa es mi melodía favorita, tus ojos el universo en el que me pierdo, y tu corazón el hogar que siempre he buscado.
 
+Cada día a tu lado es un regalo. Me enseñas el verdadero significado del amor: no solo con palabras, sino con cada gesto, cada mirada, cada momento compartido. Contigo he aprendido que el amor no es perfecto, pero es real, profundo y transformador.
 
-        const startTime = Date.now();
-        let showingLetter = false; // Variable para controlar si se muestra la carta
-        
-        // Variables para el efecto 3D y espejo
-        let heart3DRotation = 0; // Ángulo de rotación para efecto 3D/espejo
-        let rotationDirection = 1; // Dirección de la rotación (1 o -1)
-        
-        // Botón "Leer Carta" (posiciones calculadas en cada frame para responsividad)
-        const buttonWidth = Math.min(150, canvas.width * 0.4);
-        const buttonHeight = Math.min(50, canvas.height * 0.08);
-        function getButtonRect() {
-            const bw = Math.min(150, canvas.width * 0.4);
-            const bh = Math.min(50, canvas.height * 0.08);
-            const bx = (canvas.width - bw) / 2;
-            // Botón debajo de "Te Amo" con espacio suficiente
-            const teAmoY = canvas.height / 2 + Math.min(150, canvas.height * 0.22);
-            const fontSize = Math.min(60, canvas.width * 0.12, canvas.height * 0.1);
-            const by = teAmoY + fontSize * 0.8;
-            return { x: bx, y: by, w: bw, h: bh };
-        }
+Quiero que sepas que estoy aquí, no solo en los momentos felices, sino también en las tormentas. Juntos podemos enfrentar cualquier desafío, porque cuando estamos unidos, somos invencibles.
 
-        // Función de animación principal
-        function animate() {
-            // Limpiar el canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+Gracias por elegirme, por amarme tal como soy, y por llenar mi vida de tanto amor y felicidad. Prometo cuidarte, valorarte y amarte todos los días de mi vida.
+
+Eres mi presente y mi futuro, mi compañera y mi mejor amiga. Te amo más de lo que las palabras pueden decir, y menos de lo que mi corazón siente.
+
+Con todo mi amor,
+Tuyo por siempre ❤️`;
+
+        // Variables para controlar el despliegue de la carta
+        let showingLetter = false;
+        let letterScrollY = 0;
+        const scrollStep = 30;
+        const maxScroll = 1200; // Ajustar según el texto real
+        let heart3DRotation = 0;
+
+        // Función para dibujar la carta de amor
+        function drawLetter() {
+            ctx.save();
             
-            // Formar el corazón inmediatamente al inicio
-            if (!heartFormed) {
-                // Formar el corazón con todas las partículas
-                for (const particle of particles) {
-                    particle.createHeartShape();
+            // Crear un fondo semitransparente para la carta
+            const margin = 50;
+            const letterWidth = canvas.width - margin * 2;
+            const letterHeight = canvas.height - margin * 2;
+            const letterX = margin;
+            const letterY = margin;
+            
+            // Fondo de la carta con sombra
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetX = 5;
+            ctx.shadowOffsetY = 5;
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.fillRect(letterX, letterY, letterWidth, letterHeight);
+            
+            // Borde decorativo
+            ctx.strokeStyle = 'rgba(255, 80, 110, 0.4)';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(letterX + 10, letterY + 10, letterWidth - 20, letterHeight - 20);
+            
+            // Resetear sombra para el texto
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            
+            // Configurar el texto
+            ctx.fillStyle = '#333';
+            const baseFontSize = Math.max(14, Math.min(18, canvas.width / 30));
+            ctx.font = `${baseFontSize}px Georgia, serif`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            
+            // Área de texto visible (con margen interno)
+            const textMargin = 30;
+            const textX = letterX + textMargin;
+            const textY = letterY + textMargin;
+            const textWidth = letterWidth - textMargin * 2;
+            const textHeight = letterHeight - textMargin * 2 - 40; // Espacio para el botón de cerrar
+            
+            // Crear región de recorte para el texto (scroll)
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(textX, textY, textWidth, textHeight);
+            ctx.clip();
+            
+            // Dibujar el texto con desplazamiento vertical (scroll)
+            const lineHeight = baseFontSize * 1.8;
+            const lines = letterText.split('\n');
+            let currentY = textY - letterScrollY;
+            
+            for (const line of lines) {
+                if (currentY + lineHeight > textY - 50 && currentY < textY + textHeight + 50) {
+                    if (line.trim() === '') {
+                        currentY += lineHeight / 2;
+                    } else {
+                        const words = line.split(' ');
+                        let currentLine = '';
+                        let testLine = '';
+                        
+                        for (let i = 0; i < words.length; i++) {
+                            testLine = currentLine + words[i] + ' ';
+                            const metrics = ctx.measureText(testLine);
+                            
+                            if (metrics.width > textWidth && i > 0) {
+                                ctx.fillText(currentLine.trim(), textX, currentY);
+                                currentLine = words[i] + ' ';
+                                currentY += lineHeight;
+                            } else {
+                                currentLine = testLine;
+                            }
+                        }
+                        
+                        ctx.fillText(currentLine.trim(), textX, currentY);
+                        currentY += lineHeight;
+                    }
+                } else {
+                    // Línea fuera del área visible, pero hay que calcular su espacio
+                    if (line.trim() === '') {
+                        currentY += lineHeight / 2;
+                    } else {
+                        const words = line.split(' ');
+                        let currentLine = '';
+                        
+                        for (let i = 0; i < words.length; i++) {
+                            const testLine = currentLine + words[i] + ' ';
+                            const metrics = ctx.measureText(testLine);
+                            
+                            if (metrics.width > textWidth && i > 0) {
+                                currentLine = words[i] + ' ';
+                                currentY += lineHeight;
+                            } else {
+                                currentLine = testLine;
+                            }
+                        }
+                        currentY += lineHeight;
+                    }
                 }
-                heartFormed = true;
             }
             
-            // Incrementar la rotación 3D/espejo
-            heart3DRotation += 0.008 * rotationDirection; // Velocidad de rotación para efecto 3D/espejo
+            ctx.restore(); // Terminar el recorte
             
-            // Cambiar dirección cuando alcance cierto ángulo para efecto de rotación completa
-            if (heart3DRotation > Math.PI || heart3DRotation < -Math.PI) { // Girar completamente
-                rotationDirection *= -1; // Invertir dirección
-            }
+            // Botón de cerrar (esquina superior derecha)
+            const closeButtonWidth = Math.min(100, canvas.width * 0.25);
+            const closeButtonHeight = Math.max(36, canvas.height * 0.055);
+            const closeButtonX = canvas.width - closeButtonWidth - 20;
+            const closeButtonY = 55;
             
-            // Actualizar partículas (rotación 3D antes de update para profundidad correcta)
-            for (const particle of particles) {
-                particle.heart3DRotation = heart3DRotation;
-                particle.update();
-            }
-            particles.sort((a, b) => (a.depthNorm ?? 0) - (b.depthNorm ?? 0));
-            if (heartFormed) drawHeartCoreGlow();
-            for (const particle of particles) particle.draw();
-            if (heartFormed) drawHeartOutline();
+            ctx.fillStyle = 'rgba(255, 100, 100, 0.8)';
+            ctx.fillRect(closeButtonX, closeButtonY, closeButtonWidth, closeButtonHeight);
             
-
-            
-
-            
-            // Dibujar texto principal 'Te Amo' (tamaño responsivo)
-            const fontSize = Math.min(60, canvas.width * 0.12, canvas.height * 0.1);
-            ctx.fillStyle = 'rgb(0, 150, 255)'; // Color azul
-            ctx.font = 'bold ' + fontSize + 'px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Te Amo', canvas.width / 2, canvas.height / 2 + Math.min(150, canvas.height * 0.22));
-            
-            // Dibujar botón "Leer Carta" (centrado, responsivo)
-            const btn = getButtonRect();
-            ctx.fillStyle = '#4a90e2'; // Color azul para el botón
-            ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(btn.x, btn.y, btn.w, btn.h);
-            
-            // Texto del botón
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold ' + Math.min(18, canvas.width * 0.045) + 'px Arial';
+            ctx.fillStyle = '#fff';
+            ctx.font = `${Math.max(14, baseFontSize * 0.9)}px Arial, sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('Leer Carta', btn.x + btn.w/2, btn.y + btn.h/2);
+            ctx.fillText('Cerrar', closeButtonX + closeButtonWidth / 2, closeButtonY + closeButtonHeight / 2);
             
-            // Si se está mostrando la carta, dibujar el cuadro de texto
-            if (showingLetter) {
-                // Fondo semi-transparente
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-                ctx.fillRect(50, 50, canvas.width - 100, canvas.height - 100);
-                
-                // Borde del cuadro
-                ctx.strokeStyle = 'rgba(0, 200, 255, 0.7)';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(50, 50, canvas.width - 100, canvas.height - 100);
-                
-                // Texto de la carta
-                ctx.fillStyle = 'white';
-                ctx.font = '16px Arial';
-                ctx.textAlign = 'left';
-                
-                // Mensaje de la carta (párrafos originales)
-                const cartaOriginal = [
-                    "Avi, mi amor,",
-                    "",
-                    "Hola… sé que ayer pasaron muchas cosas, demasiadas emociones de golpe, y que quizás todo fue un torbellino. Pero quiero que sepas que lo último que pasó en la noche era exactamente lo que necesitaba sacar del pecho. Solo estando tomado pude sincerarme de verdad, sin filtros, sin pensar dos veces. Y cada palabra que te dije salió desde lo más hondo, porque era real. Te amo, Avi, y lo hago de verdad, con todo lo que soy.",
-                    "",
-                    "Cuando me dijiste que me amabas… créeme que me dio una esperanza enorme, de esas que no sentía hace tiempo. Sé que para intentar volver a estar juntos tendré que esperar, y estoy dispuesto a hacerlo todo el tiempo que haga falta. Porque tú vales la pena, vales cada segundo de paciencia.",
-                    "",
-                    "Sí, nos hicimos daño, y mucho. Lo reconozco. Pero al mismo tiempo nos amamos, y ayer se notó, se sintió en cada mirada, en cada abrazo. No fue solo el alcohol; fue lo que llevamos guardado.",
-                    "",
-                    "Hoy, 14 de febrero, no es solo el día del amor y la amistad para mí. Es el día en que más hubiera querido pasar contigo, abrazarte sin prisas, demostrarte lo que siento sin miedo. Pero aunque no estemos juntos hoy, quiero decirte algo importante: te invito a salir el lunes, antes de que entres a la escuela. Si quieres faltar un rato al servicio, o solo escaparnos un momento… salgamos a comer algo, a platicar tranquilos, tú y yo solos. Sin alcohol de por medio, sin preocupaciones de qué pasará mañana. Solo disfrutar un rato como ayer, pero con la calma de saber que podemos demostrarnos cariño sin que se acabe al día siguiente.",
-                    "",
-                    "Te amo más de lo que las palabras pueden decir, y ayer quise que lo supieras de una vez. Me encantó salir contigo, verte sonreír, sentirte cerca. No te preocupes, sé que no eres de las que juegan o lastiman a propósito, por eso todavía confío en ti… aunque quizás tú ya no lo hagas en mí. Lo entiendo, y lo voy a respetar.",
-                    "",
-                    "Es todo por ahora, Avi. Descansa, cuídate mucho. Dudo que contestes pronto, y está bien. Solo necesitaba que leyeras esto, o que lo escucharas, y que supieras que mi corazón sigue aquí, esperándote si algún día decides volver a intentarlo.",
-                    "",
-                    "Te amo.",
-                    "",
-                    "Cuídate, por favor.",
-                    "",
-                    "Te amo."
-                ];
-                
-                // Ajustar texto al ancho del cuadro (word wrap) para que se lea bien
-                const maxLineWidth = canvas.width - 140;
-                const lineHeight = 22;
-                const carta = [];
-                ctx.font = '15px Georgia, serif';
-                for (let p = 0; p < cartaOriginal.length; p++) {
-                    const parrafo = cartaOriginal[p];
-                    if (parrafo === "") {
-                        carta.push("");
-                        continue;
-                    }
-                    const palabras = parrafo.split(" ");
-                    let linea = "";
-                    for (let w = 0; w < palabras.length; w++) {
-                        const prueba = linea ? linea + " " + palabras[w] : palabras[w];
-                        const ancho = ctx.measureText(prueba).width;
-                        if (ancho <= maxLineWidth) {
-                            linea = prueba;
-                        } else {
-                            if (linea) carta.push(linea);
-                            linea = palabras[w];
-                        }
-                    }
-                    if (linea) carta.push(linea);
+            ctx.restore();
+        }
+
+        function getButtonRect() {
+            const buttonWidth = Math.min(200, canvas.width * 0.45);
+            const buttonHeight = Math.max(50, canvas.height * 0.08);
+            const buttonX = (canvas.width - buttonWidth) / 2;
+            const buttonY = canvas.height * 0.65;
+            return { x: buttonX, y: buttonY, w: buttonWidth, h: buttonHeight };
+        }
+
+        // Función para dibujar el botón debajo del corazón (solo visible si no está mostrando la carta)
+        function drawButton() {
+            if (showingLetter) return; // No mostrar el botón si la carta está visible
+            
+            ctx.save();
+            
+            const btn = getButtonRect();
+            
+            // Sombra del botón
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            ctx.shadowBlur = 15;
+            ctx.shadowOffsetX = 3;
+            ctx.shadowOffsetY = 3;
+            
+            // Fondo del botón con gradiente rojo
+            const grad = ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.h);
+            grad.addColorStop(0, 'rgba(255, 60, 90, 0.95)');
+            grad.addColorStop(1, 'rgba(220, 40, 70, 0.95)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+            
+            // Borde del botón
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(btn.x, btn.y, btn.w, btn.h);
+            
+            // Resetear sombra
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            
+            // Texto del botón
+            ctx.fillStyle = '#fff';
+            const buttonFontSize = Math.max(16, Math.min(22, canvas.width / 25));
+            ctx.font = `bold ${buttonFontSize}px Arial, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('Lee mi carta ❤️', btn.x + btn.w / 2, btn.y + btn.h / 2);
+            
+            ctx.restore();
+        }
+
+        // Función principal de animación
+        function animate() {
+            // Limpiar el canvas con un fondo oscuro
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Si el corazón no se ha formado completamente, crear partículas hasta completarlo
+            if (!heartFormed) {
+                if (particles.length < numHeartParticles) {
+                    const newParticle = new Particle();
+                    newParticle.createHeartShape();
+                    particles.push(newParticle);
+                } else {
+                    heartFormed = true;
                 }
-                maxScroll = Math.max(0, carta.length * lineHeight - (canvas.height - 130));
-                
-                // Dibujar cada línea del texto con desplazamiento
-                ctx.font = '15px Georgia, serif';
-                for (let i = 0; i < carta.length; i++) {
-                    const yPos = 80 + i * lineHeight - letterScrollY;
-                    if (yPos > 50 && yPos < canvas.height - 50) {
-                        ctx.fillText(carta[i], 70, yPos);
-                    }
-                }
-                
-                // Indicador de desplazamiento (texto corto en móvil)
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-                ctx.font = (canvas.width < 400 ? '11px' : '12px') + ' Arial';
-                ctx.textAlign = 'right';
-                ctx.fillText(canvas.width < 400 ? 'Desliza para leer' : 'Rueda del ratón o toca para desplazar', canvas.width - 20, canvas.height - 15);
-                
-                // Botón de cerrar (tamaño táctil en móvil)
-                const closeW = Math.min(100, canvas.width * 0.25);
-                const closeH = Math.max(36, canvas.height * 0.055);
-                const closeX = canvas.width - closeW - 20;
-                const closeY = 55;
-                ctx.fillStyle = '#e74c3c';
-                ctx.fillRect(closeX, closeY, closeW, closeH);
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(closeX, closeY, closeW, closeH);
-                ctx.fillStyle = 'white';
-                ctx.font = 'bold ' + Math.min(14, canvas.width * 0.035) + 'px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('Cerrar', closeX + closeW/2, closeY + closeH/2);
             }
             
-            // Dibujar todas las flores
+            // Actualizar y renderizar cada partícula
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update();
+                p.render();
+                
+                // Si la partícula ha llegado al final de su vida y no está en formación de corazón, eliminarla
+                if (p.age > p.life && !p.inHeartFormation) {
+                    particles.splice(i, 1);
+                }
+            }
+            
+            // Añadir nuevas partículas de fondo si el corazón ya está formado
+            if (heartFormed && Math.random() < 0.1) {
+                const p = new Particle();
+                particles.push(p);
+            }
+            
+            // Actualizar rotación 3D del corazón
+            heart3DRotation += 0.0015;
+            
+            // Dibujar el resplandor del núcleo del corazón
+            drawHeartCoreGlow();
+            
+            // Dibujar el contorno del corazón
+            drawHeartOutline();
+            
+            // Dibujar flores donde el usuario haya tocado/cliqueado
             for (const flower of flowers) {
                 drawFlower(flower.x, flower.y);
             }
-            // Continuar la animación
+            
+            // Dibujar el botón si la carta no está visible
+            if (!showingLetter) {
+                drawButton();
+            }
+            
+            // Si se está mostrando la carta, dibujarla
+            if (showingLetter) {
+                drawLetter();
+            }
+            
+            // Solicitar el siguiente frame
             requestAnimationFrame(animate);
         }
-        
-        // Variables para el desplazamiento de la carta
-        let letterScrollY = 0;
-        let maxScroll = 500;
-        const scrollStep = 30; // Cantidad de píxeles por paso de desplazamiento
-        
-        // Función para dibujar una flor en la posición (x, y)
+
+        // Función para dibujar una flor
         function drawFlower(x, y) {
             // Centro de la flor
             ctx.beginPath();
             ctx.arc(x, y, 10, 0, Math.PI * 2);
-            ctx.fillStyle = 'yellow';
+            ctx.fillStyle = 'rgba(255, 200, 100, 0.9)'; // Amarillo para el centro
             ctx.fill();
             
-            // Dibujar 6 pétalos
+            // Pétalos de la flor (6 pétalos alrededor del centro)
             for (let i = 0; i < 6; i++) {
-                const angle = i * Math.PI / 3; // Dividir en 6 partes iguales (60 grados)
-                
+                const angle = (Math.PI * 2 / 6) * i;
                 ctx.beginPath();
-                // Usamos ellipse para crear los pétalos
                 ctx.ellipse(
                     x + 25 * Math.cos(angle),   // Posición x del pétalo
                     y + 25 * Math.sin(angle),   // Posición y del pétalo
@@ -661,13 +629,13 @@
             ctx.save();
             const cx = canvas.width / 2;
             const cy = canvas.height / 3;
-            const pulse = 1 + 0.04 * Math.sin(Date.now() * 0.002);
-            const r = Math.min(canvas.width, canvas.height) * 0.35 * pulse;
+            const pulse = 1 + 0.08 * Math.sin(Date.now() * 0.003);
+            const r = Math.min(canvas.width, canvas.height) * 0.4 * pulse;
             const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-            grad.addColorStop(0, 'rgba(180, 120, 255, 0.12)');
-            grad.addColorStop(0.4, 'rgba(100, 180, 255, 0.06)');
-            grad.addColorStop(0.7, 'rgba(50, 150, 220, 0.02)');
-            grad.addColorStop(1, 'rgba(0, 100, 180, 0)');
+            grad.addColorStop(0, 'rgba(255, 50, 80, 0.25)');
+            grad.addColorStop(0.3, 'rgba(255, 30, 60, 0.15)');
+            grad.addColorStop(0.6, 'rgba(200, 20, 50, 0.08)');
+            grad.addColorStop(1, 'rgba(150, 0, 30, 0)');
             ctx.globalCompositeOperation = 'lighter';
             ctx.fillStyle = grad;
             ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
@@ -700,34 +668,45 @@
                 ctx.closePath();
             }
             
-            const shadowOffset = 5 + (10 + sideView * 14) * Math.abs(sinAngle);
+            // Sombra más dramática para efecto holograma
+            const shadowOffset = 6 + (12 + sideView * 16) * Math.abs(sinAngle);
             buildHeartPath(shadowOffset, shadowOffset);
-            ctx.fillStyle = `rgba(0, 30, 60, ${0.4 + sideView * 0.25})`;
+            ctx.fillStyle = `rgba(80, 0, 20, ${0.5 + sideView * 0.3})`;
             ctx.fill();
             
+            // Relleno sutil del corazón con rojo
             buildHeartPath(0, 0);
             ctx.globalCompositeOperation = 'lighter';
-            ctx.fillStyle = `rgba(120, 180, 255, ${0.03 + 0.02 * (1 - sideView)})`;
+            ctx.fillStyle = `rgba(255, 40, 70, ${0.05 + 0.03 * (1 - sideView)})`;
             ctx.fill();
             ctx.globalCompositeOperation = 'source-over';
             
-            for (let i = 0; i < 5; i++) {
-                const offset = (i - 2) * 2.8;
-                const alpha = 0.6 - i * 0.12;
+            // Múltiples capas de contorno rojo para efecto de holograma
+            for (let i = 0; i < 6; i++) {
+                const offset = (i - 2.5) * 2.5;
+                const alpha = 0.7 - i * 0.1;
                 buildHeartPath(offset, offset);
-                ctx.strokeStyle = `rgba(80, 200, 255, ${alpha})`;
-                ctx.lineWidth = 2.8;
+                ctx.strokeStyle = `rgba(255, 50, 80, ${alpha})`;
+                ctx.lineWidth = 3;
                 ctx.stroke();
             }
             
+            // Contorno principal brillante
             buildHeartPath(0, 0);
-            ctx.strokeStyle = `rgba(180, 235, 255, ${0.95})`;
-            ctx.lineWidth = 2.2;
+            ctx.strokeStyle = `rgba(255, 80, 110, ${0.95})`;
+            ctx.lineWidth = 2.5;
             ctx.stroke();
             
+            // Línea interior super brillante (efecto holograma)
             buildHeartPath(0, 0);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(255, 150, 170, 0.6)';
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+            
+            // Línea exterior extra brillante
+            buildHeartPath(0, 0);
+            ctx.strokeStyle = 'rgba(255, 200, 220, 0.4)';
+            ctx.lineWidth = 0.8;
             ctx.stroke();
             
             ctx.restore();
